@@ -255,8 +255,11 @@ func (self *Database) AddMessage(fname string) (*Message, Status) {
 		return nil, STATUS_OUT_OF_MEMORY
 	}
 
+	var opts *C.notmuch_indexopts_t = C.notmuch_database_get_default_indexopts(self.db)
+
 	var c_msg *C.notmuch_message_t = new(C.notmuch_message_t)
-	st := Status(C.notmuch_database_add_message(self.db, c_fname, &c_msg))
+	//st := Status(C.notmuch_database_add_message(self.db, c_fname, &c_msg))
+	st := Status(C.notmuch_database_index_file(self.db, c_fname, opts, &c_msg))
 
 	return &Message{message: c_msg}, st
 }
@@ -455,7 +458,8 @@ func (self *Query) GetSort() Sort {
  * If a Xapian exception occurs this function will return NULL.
  */
 func (self *Query) SearchThreads() *Threads {
-	threads := C.notmuch_query_search_threads(self.query)
+	var threads *C.notmuch_threads_t
+	C.notmuch_query_search_threads(self.query, &threads)
 	if threads == nil {
 		return nil
 	}
@@ -501,7 +505,8 @@ func (self *Query) SearchThreads() *Threads {
  * If a Xapian exception occurs this function will return NULL.
  */
 func (self *Query) SearchMessages() *Messages {
-	msgs := C.notmuch_query_search_messages(self.query)
+	var msgs *C.notmuch_messages_t
+	C.notmuch_query_search_messages(self.query, &msgs)
 	if msgs == nil {
 		return nil
 	}
@@ -531,7 +536,9 @@ func (self *Query) Destroy() {
  * printing a message).
  */
 func (self *Query) CountMessages() uint {
-	return uint(C.notmuch_query_count_messages(self.query))
+	var count C.uint
+	C.notmuch_query_count_messages(self.query, &count)
+	return uint(count)
 }
 
 /* Is the given 'threads' iterator pointing at a valid thread.
